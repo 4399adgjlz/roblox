@@ -1,0 +1,352 @@
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/woailujb911/roblox/refs/heads/main/%E5%8D%A1%E5%8D%A1.lua"))()
+local Window = OrionLib:MakeWindow({
+    Name = "鱼脚本",
+    SaveConfig = true,
+    IntroText = "鱼脚本 - 功能加载完成",
+    Theme = "FlatBlue",
+    Icon = "rbxassetid://118894209472715"
+})
+
+-- 欢迎通知
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "鱼脚本",
+        Text = "欢迎使用，功能已就序",
+        Duration = 4,
+        Icon = "rbxassetid://117383430326696"
+    })
+end)
+
+-- 玩家功能 Tab（原 Tab）
+local Tab = Window:MakeTab({
+    Name = "玩家功能",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+Tab:AddTextbox({
+    Name = "跳跃高度",
+    Default = "",
+    TextDisappear = true,
+    Callback = function(Value)
+        local num = tonumber(Value)
+        if num then
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = num
+        end
+    end
+})
+
+Tab:AddTextbox({
+    Name = "移动速度",
+    Default = "",
+    TextDisappear = true,
+    Callback = function(Value)
+        local num = tonumber(Value)
+        if num then
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = num
+        end
+    end
+})
+
+Tab:AddTextbox({
+    Name = "重力",
+    Default = "",
+    TextDisappear = true,
+    Callback = function(Value)
+        local num = tonumber(Value)
+        if num then
+            game.Workspace.Gravity = num
+        end
+    end
+})
+
+Tab:AddTextbox({
+    Name = "旋转速度",
+    Placeholder = "输入旋转速度值",
+    Callback = function(Value)
+        local speed = tonumber(Value)
+        if not speed then
+            return OrionLib:MakeNotification({
+                Name = "错误",
+                Content = "请输入有效的数字",
+                Time = 2
+            })
+        end
+        
+        local plr = game:GetService("Players").LocalPlayer
+        repeat task.wait() until plr.Character
+        local humRoot = plr.Character:WaitForChild("HumanoidRootPart")
+        local humanoid = plr.Character:WaitForChild("Humanoid")
+        humanoid.AutoRotate = false
+
+        if not spinVelocity then
+            spinVelocity = Instance.new("AngularVelocity")
+            spinVelocity.Attachment0 = humRoot:WaitForChild("RootAttachment")
+            spinVelocity.MaxTorque = math.huge
+            spinVelocity.AngularVelocity = Vector3.new(0, speed, 0)
+            spinVelocity.Parent = humRoot
+            spinVelocity.Name = "Spinbot"
+        else
+            spinVelocity.AngularVelocity = Vector3.new(0, speed, 0)
+        end
+        
+        OrionLib:MakeNotification({
+            Name = "已设置",
+            Content = "旋转速度已调整为: " .. speed,
+            Time = 1.5
+        })
+    end
+})
+
+Tab:AddButton({
+    Name = "停止旋转",
+    Callback = function()
+        local plr = game:GetService("Players").LocalPlayer
+        repeat task.wait() until plr.Character
+        local humRoot = plr.Character:WaitForChild("HumanoidRootPart")
+        local humanoid = plr.Character:WaitForChild("Humanoid")
+
+        local spinbot = humRoot:FindFirstChild("Spinbot")
+        if spinbot then
+            spinbot:Destroy()
+            spinVelocity = nil
+            humanoid.AutoRotate = true
+            OrionLib:MakeNotification({
+                Name = "已停止",
+                Content = "旋转已停止",
+                Time = 1.5
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "提示",
+                Content = "未处于旋转状态",
+                Time = 1.5
+            })
+        end
+    end,
+    Color = Color3.fromRGB(255, 99, 71)
+})
+
+Tab:AddToggle({
+    Name = "穿墙",
+    Default = false,
+    Callback = function(enabled)
+        isClipping = enabled
+        local char = game.Players.LocalPlayer.Character
+        
+        if enabled then
+            stepConnection = game:GetService("RunService").Stepped:Connect(function()
+                if isClipping and char then
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                else
+                    stepConnection:Disconnect()
+                end
+            end)
+            OrionLib:MakeNotification({Name = "状态", Content = "穿墙已开启", Time = 2})
+        else
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+            OrionLib:MakeNotification({Name = "状态", Content = "穿墙已关闭", Time = 2})
+            if stepConnection then stepConnection:Disconnect() end
+        end
+    end,
+    Color = Color3.fromRGB(100, 149, 237)
+})
+
+local isESPEnabled = false
+local highlights = {}
+
+Tab:AddToggle({
+    Name = "夜视",
+    Default = false,
+    Callback = function(Value)
+        game.Lighting.Ambient = Value and Color3.new(1, 1, 1) or Color3.new(0, 0, 0)
+    end
+})
+
+Tab:AddToggle({
+    Name = "踏空",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            local success, err = pcall(function()
+                loadstring(game:HttpGet('https://raw.githubusercontent.com/GhostPlayer352/Test4/main/Float'))()
+            end)
+            if not success then
+                warn("踏空功能脚本加载失败: ".. (err or "未知错误"))
+            end
+        end
+    end
+})
+
+Tab:AddButton({
+    Name = "透视",
+    Callback = function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local LP = Players.LocalPlayer
+        local Teams = game:GetService("Teams")
+
+        local function IsGunGame()
+            return #Teams:GetTeams() >= 2
+        end
+
+        local function IsEnemy(plr)
+            if not IsGunGame() then return false end
+            if not plr.Team or not LP.Team then return false end
+            return plr.Team ~= LP.Team
+        end
+
+        local function GetHighlightColor(plr)
+            if not IsGunGame() then
+                return Color3.fromRGB(255, 255, 255)
+            elseif IsEnemy(plr) then
+                return Color3.fromRGB(180, 0, 0)
+            else
+                return Color3.fromRGB(0, 150, 255)
+            end
+        end
+
+        local function CreateHighlight(target, color)
+            local h = Instance.new("Highlight")
+            h.Name = "StyledHighlight"
+            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            h.FillColor = color
+            h.FillTransparency = 0.75
+            h.OutlineColor = color
+            h.OutlineTransparency = 0.3
+            h.Adornee = target
+            h.Parent = target
+        end
+
+        local function SetupVisuals(plr)
+            if not plr.Character or plr == LP then return end
+            local char = plr.Character
+            if char:FindFirstChild("StyledHighlight") then return end
+
+            local color = GetHighlightColor(plr)
+            CreateHighlight(char, color)
+        end
+
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LP then
+                SetupVisuals(plr)
+            end
+        end
+
+        Players.PlayerAdded:Connect(function(plr)
+            if plr == LP then return end
+            plr.CharacterAdded:Connect(function()
+                task.wait(0.2)
+                SetupVisuals(plr)
+            end)
+        end)
+
+        LP.CharacterAdded:Connect(function(myChar)
+            local h = myChar:FindFirstChild("StyledHighlight")
+            if h then h:Destroy() end
+        end)
+    end
+})
+
+Tab:AddButton({
+    Name = "关闭透视",
+    Callback = function()
+        for _, plr in pairs(game:GetService("Players"):GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("StyledHighlight") then
+                plr.Character.StyledHighlight:Destroy()
+            end
+        end
+    end
+})
+
+Tab:AddToggle({
+    Name = "飞行",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            local success, err = pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/HXB20111/roblox-/refs/heads/main/%E9%BB%84%E9%A3%9E%E8%A1%8C"))()
+            end)
+            if not success then
+                warn("飞行功能脚本加载失败: ".. (err or "未知错误"))
+            end
+        end
+    end
+})
+
+Tab:AddButton({
+    Name = "自瞄1",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/woailujb911/roblox/refs/heads/main/zimiao"))()
+    end
+})
+
+Tab:AddButton({
+    Name = "自瞄2",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/wsomoQaz/lua-/main/aimbot"))()
+    end
+})
+
+-- 作者信息标签页
+local AuthorTab = Window:MakeTab({
+    Name = "作者信息",
+    Icon = "rbxassetid://4483345998"
+})
+
+AuthorTab:AddParagraph("作者", "鱼")
+AuthorTab:AddParagraph("作者QQ", "无")
+AuthorTab:AddParagraph("副作者", "无")
+AuthorTab:AddParagraph("作者QQ", "无")
+AuthorTab:AddParagraph("QQ群", "0")
+
+
+AuthorTab:AddButton({
+    Name = "复制作者QQ",
+    Callback = function()
+        if setclipboard then
+            setclipboard("0")
+            OrionLib:MakeNotification({Name = "成功", Content = "QQ已复制", Time = 2})
+        end
+    end,
+    Color = Color3.fromRGB(70, 130, 255)
+})
+
+AuthorTab:AddButton({
+    Name = "复制QQ群",
+    Callback = function()
+        if setclipboard then
+            setclipboard("787891")
+            OrionLib:MakeNotification({Name = "成功", Content = "QQ群已复制", Time = 2})
+        end
+    end,
+    Color = Color3.fromRGB(100, 200, 100)
+})
+
+local InkGameTab = Window:MakeTab({
+    Name = "其它脚本",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+InkGameTab:AddButton({
+    Name = "虚空脚本",
+    Callback = function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/ke9460394-dot/ugik/refs/heads/main/99%E5%A4%9C%E8%99%9A%E7%A9%BA.txt"))()
+        end)
+        if not success then
+            warn("虚空脚本加载失败: ".. (err or "未知错误"))
+        end
+    end
+})
